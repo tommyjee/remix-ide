@@ -1,19 +1,24 @@
 var yo = require('yo-yo')
+// var csjs = require('csjs-inject')
 var remixLib = require('remix-lib')
-var EventManager = remixLib.EventManager
+
+// var styleguide = require('../ui/styles-guide/theme-chooser')
+var PluginManager = require('../plugin/pluginManager')
 var TabbedMenu = require('../tabs/tabbed-menu')
 var CompileTab = require('../tabs/compile-tab')
-var RunTab = require('../tabs/run-tab')
 var SettingsTab = require('../tabs/settings-tab')
 var AnalysisTab = require('../tabs/analysis-tab')
 var DebuggerTab = require('../tabs/debugger-tab')
 var SupportTab = require('../tabs/support-tab')
 var PluginTab = require('../tabs/plugin-tab')
-var PluginManager = require('../plugin/pluginManager')
+// var TestTab = require('../tabs/test-tab')
+var RunTab = require('../tabs/run-tab')
 
+var EventManager = remixLib.EventManager
+// var styles = styleguide.chooser()
 var css = require('./styles/righthand-panel-styles')
 
-function RighthandPanel (appAPI = {}, events = {}, opts = {}) {
+module.exports = function RighthandPanel (appAPI = {}, events = {}, opts = {}) {
   var self = this
   self._api = appAPI
   self.event = new EventManager()
@@ -117,5 +122,3 @@ function RighthandPanel (appAPI = {}, events = {}, opts = {}) {
     }
   }
 }
-
-module.exports = RighthandPanel
