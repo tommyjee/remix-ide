@@ -20,63 +20,72 @@ const styles = styleguide.chooser()
 module.exports = class RighthandPanel {
   constructor (api = {}, events = {}, opts = {}) {
     const self = this
-    self._api = api
-    self._events = events
-    self._opts = opts
     self.event = new EventManager()
-    self._view = { el: null, tabbedMenu: null, tabbedMenuViewport: null, dragbar: null }
-    self._components = {}
+    self._api = api
+    self._api.switchTab = x => {
+      if (self._view.tabbedMenu) self._view.tabbedMenu.selectTabByClassName(x) // @TODO: refactor
+    }
+    self._events = events
+    self._events.rhp = self.event // @TODO: refactor
+    self._opts = opts
+    self._view = {
+      element: null,
+      tabbedMenu: null,
+      tabbedMenuViewport: null,
+      dragbar: null
+    }
+    self._components = {
+      pluginManager: null,
+      tabbedMenu: null,
+      compileTab: null,
+      runTab: null,
+      settingsTab: null,
+      analysisTab: null,
+      debuggerTab: null,
+      supportTab: null
+    }
 
-    const optionViews = yo`<div id="optionViews"></div>`
+    self._components.pluginManager = new PluginManager(self._opts.pluginAPI, self._events)
+    self._view.tabbedMenuViewport = yo`<div id="optionViews"></div>`
     self._view.dragbar = yo`<div id="dragbar" class=${css.dragbar}></div>`
-    // load tabbed menu component
     const tabEvents = {compiler: self._events.compiler, app: self._events.app, rhp: self.event}
-    self._view.tabbedMenu = new TabbedMenu(self._api, tabEvents)
-    const options = self._view.tabbedMenu.render()
-    options.classList.add(css.opts)
+    self._components.tabbedMenu = new TabbedMenu(self._api, tabEvents)
+    self._view.tabbedMenu = self._view.tabbedMenu.render()
+    self._view.tabbedMenu.classList.add(css.opts)
     self._view.element = yo`
       <div id="righthand-panel" class=${css.panel}>
         ${self._view.dragbar}
         <div id="header" class=${css.header}>
-          <div class=${css.menu}>
-            ${options}
-          </div>
-          ${optionViews}
+          <div class=${css.menu}>${self._view.tabbedMenu}</div>
+          ${self._view.tabbedMenuViewport}
         </div>
-      </div>
-    `
-    // selectTabByClassName
-    self._api.switchTab = tabClass => self._view.tabbedMenu.selectTabByClassName(tabClass)
+      </div>`
+    self._components.compileTab = new CompileTab(self._api, self._events, self._opts)
+    self._view.tabbedMenuViewport.appendChild(self._components.compileTab.render())
+    self._components.runTab = new RunTab(self._api, self._events, self._opts)
+    self._view.tabbedMenuViewport.appendChild(self._components.runTab.render())
+    self._components.settingsTab = new SettingsTab(self._api, self._events, self._opts)
+    self._view.tabbedMenuViewport.appendChild(self._components.settingsTab.render())
+    self._components.analysisTab = new AnalysisTab(self._api, self._events, self._opts)
+    self._view.tabbedMenuViewport.appendChild(self._components.analysisTab.render())
+    self._components.debuggerTab = new DebuggerTab(self._api, self._events, self._opts)
+    self._view.tabbedMenuViewport.appendChild(self._components.debuggerTab.render())
+    self._components.supportTab = new SupportTab(self._api, self._events, self._opts)
+    self._view.tabbedMenuViewport.appendChild(self._components.supportTab.render())
+    self._components.tabbedMenu.addTab('Compile', 'compileView', self._view.tabbedMenuViewport.querySelector('#compileTabView'))
+    self._components.tabbedMenu.addTab('Run', 'runView', self._view.tabbedMenuViewport.querySelector('#runTabView'))
+    self._components.tabbedMenu.addTab('Settings', 'settingsView', self._view.tabbedMenuViewport.querySelector('#settingsView'))
+    self._components.tabbedMenu.addTab('Analysis', 'staticanalysisView', self._view.tabbedMenuViewport.querySelector('#staticanalysisView'))
+    self._components.tabbedMenu.addTab('Debugger', 'debugView', self._view.tabbedMenuViewport.querySelector('#debugView'))
+    self._components.tabbedMenu.addTab('Support', 'supportView', self._view.tabbedMenuViewport.querySelector('#supportView'))
+    self._components.tabbedMenu.selectTabByTitle('Compile')
 
-    self._events.rhp = self.event
-
-    const compileTab = new CompileTab(self._api, self._events, self._opts)
-    optionViews.appendChild(compileTab.render())
-    const runTab = new RunTab(self._api, self._events, self._opts)
-    optionViews.appendChild(runTab.render())
-    const settingsTab = new SettingsTab(self._api, self._events, self._opts)
-    optionViews.appendChild(settingsTab.render())
-    const analysisTab = new AnalysisTab(self._api, self._events, self._opts)
-    optionViews.appendChild(analysisTab.render())
-    const debuggerTab = new DebuggerTab(self._api, self._events, self._opts)
-    optionViews.appendChild(debuggerTab.render())
-    const supportTab = new SupportTab(self._api, self._events, self._opts)
-    optionViews.appendChild(supportTab.render())
-    this._view.tabbedMenu.addTab('Compile', 'compileView', optionViews.querySelector('#compileTabView'))
-    this._view.tabbedMenu.addTab('Run', 'runView', optionViews.querySelector('#runTabView'))
-    this._view.tabbedMenu.addTab('Settings', 'settingsView', optionViews.querySelector('#settingsView'))
-    this._view.tabbedMenu.addTab('Analysis', 'staticanalysisView', optionViews.querySelector('#staticanalysisView'))
-    this._view.tabbedMenu.addTab('Debugger', 'debugView', optionViews.querySelector('#debugView'))
-    this._view.tabbedMenu.addTab('Support', 'supportView', optionViews.querySelector('#supportView'))
-    this._view.tabbedMenu.selectTabByTitle('Compile')
-
-    self.pluginManager = new PluginManager(self._opts.pluginAPI, self._events)
     self._events.rhp.register('plugin-loadRequest', (json) => {
       const tab = new PluginTab({}, self._events, json)
       const content = tab.render()
-      optionViews.appendChild(content)
-      this._view.tabbedMenu.addTab(json.title, 'plugin', content)
-      self.pluginManager.register(json, content)
+      self._view.tabbedMenuViewport.appendChild(content)
+      self._components.tabbedMenu.addTab(json.title, 'plugin', content)
+      self._components.pluginManager.register(json, content)
     })
   }
   render () {
@@ -84,10 +93,8 @@ module.exports = class RighthandPanel {
     return self._view.element
   }
   init () {
+    // @TODO: init is for resizable drag bar only and should be refactored in the future
     const self = this
-    // ;[...options.children].forEach((el) => { el.classList.add(css.options) })
-
-    // ----------------- resizeable ui ---------------
     const limit = 60
     self._view.dragbar.addEventListener('mousedown', mousedown)
     const ghostbar = yo`<div class=${css.ghostbar}></div>`
